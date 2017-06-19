@@ -1,154 +1,20 @@
 /**
-    全局变量  当前环境，指测试服与正式服所使用的不同域名（接口）
-            切换方法是在启动服务（npm run dev）或者打包构建（npm run build）
-            的时候带上特有参数如  npm run dev-prod 为正式服
-                               npm run dev      为测试服
-                            npm run build-prod 同理
-            见：package.json
-*/
-
-window.devEnv = process.devEnv;
-var apiAddr = window.devEnv == "production-server" ? '' : 'wx.h2ca4.cn/index.php?';
-var origin = window.devEnv == "production-server" ? "" : "wx.h2ca4.cn";
-/**
-    util 为项目的常用方法集合，该对象在任一组件内import后均可使用 如：util.validator();
+    util 为项目的常用工具方法集合，该对象在任一组件内import后均可使用;
 */
 var util = {
-    preUrl:'https://'+apiAddr, //接口地址的前缀
-    apiPreUrl : 'https://'+origin,/*axios自己会多加一个斜杠，所以单独处理一个变量*/
     app:null,
     initAppObj:function(obj){
         this.app = obj;
     },
-    ajax:function(self,opt){
-        var that = this;
-        var param = {
-
-        }
-        param = that.extend(true,param,opt);
-
-        /*params 拼接在url后面的参数*/
-        var third_session_obj = {
-            "third_session": cache.getStorage("third_session")
-        }
-        var params = param.method.toLowerCase()==='get'?that.extend({},third_session_obj,param.data):third_session_obj;
-        /*data是body里面的内容*/
-        var data = param.method.toLowerCase()==='post'?JSON.stringify(param.data):null;
-        var ajaxConfig = {
-            method: param.method,
-            url:"index.php?"+param.url,
-            data:data,
-            params: params,
-            baseURL: that.apiPreUrl,
-            withCredentials:true,
-            headers:{
-                "Content-type":"application/json;charset=utf-8"
-            },
-            /*transformRequest: [function (data) {
-                // 对 data 进行任意转换处理
-
-                return data;
-            }],
-            transformResponse: [function (data) {
-                // 对 data 进行任意转换处理
-
-                return data;
-            }],*/
-            onUploadProgress: function (progressEvent) {
-                // `onUploadProgress` 允许为上传处理进度事件
-            },
-            onDownloadProgress: function (progressEvent) {
-                // `onDownloadProgress` 允许为下载处理进度事件
-            }
-        }
-
-        self.$ajax(ajaxConfig).then(function(res){
-            var data = typeof res == 'string'?JSON.parse(res.data):res.data;
-            if(typeof param.complete == 'function'){
-                typeof data.data=='undefined'?param.complete():param.complete(data.data)
-            }
-
-            if(data.code==0){
-                if(typeof param.success == 'function'){
-                    typeof data.data=='undefined'?param.success():param.success(data.data)
-                }
-            }else if(data.code==20007){
-                that.login(self);
-            }else if(data.code==20102){
-                that.login(self);
-
-            }else{
-                that.alert(data.msg,false,self);
-            }
-
-        }).catch(function(err){
-            typeof param.error == 'function' && param.error(err);
-        });
-    },
-    login(context){
-        /*微信授权登录*/
-        var self = this;
-        var loginNum = cache.getSession("wxLogin")||0;
-        if(loginNum >= 10)return false;
-
-        loginNum++;
-        cache.setSession("wxLogin",loginNum);
-        /*确定要重新登录的话，清楚之前存储于本地的信息*/
-        cache.removeStorage("third_session");
-        var urlParam = ''
-        if(typeof context.$route.query.shared_id != 'undefined'){
-            urlParam = '&shared_id='+context.$route.query.shared_id;
-        }
-        var url = util.preUrl+"r=share/get-user-info"+urlParam;
-        window.location.href = url;
-    },
-    bindRelation(){
-        /*绑定关系*/
-        var url = util.preUrl+"r=share/bind-relation&third_session="+cache.getStorage("third_session");
-        window.location.href = url;
-    },
-    getPageInfo(self){
-        return new Promise(function(resolve,reject){
-            util.ajax(self,{
-                method:"GET",
-                url:"r=personal/index-page",
-                data:{},
-                success(res){
-                    let index_info = res.index_info;
-                    let personal_info = res.personal_info;
-                    let activity_info = res.activity_info;
-                    util.urlToBase64(
-        				personal_info.avator,
-        				function(dataUrl) {
-        					personal_info.avator = dataUrl;
-
-                            cache.setStorage("index_info",index_info);
-                            cache.setStorage("personal_info",personal_info);
-                            cache.setStorage("activity_info",activity_info);
-        				}
-        			)
-
-                    resolve(res);
-                }
-            });
-        });
-    },
     loading: function() {
         /*全局loading开始*/
-        $(".loading-box").addClass("loading");
+
     },
     loaded: function(callback) {
         /*全局loading结束*/
-        $(".loading-box").removeClass("loading");
-        callback&&callback();
     },
-    alert(msg,type,context){
-        var context = context||this.app;
-        var msg = msg;
-        var type = typeof type === 'undefined'||type===true ?'':'cancel';
-        context.$store.dispatch("showGlobalToast",true);
-        context.$store.dispatch("globalToastText",msg);
-        context.$store.dispatch("globalType",type);
+    alert(msg){
+        alert(msg);
     },
     confirm:function(msg,success,error){
         var r = confirm(msg);
@@ -157,6 +23,20 @@ var util = {
         }else{
             error&&error();
         }
+    },
+    getRequest:function() {
+        //获取url中所附带的参数
+        var url = location.search;
+        var theRequest = new Object();
+
+        if (url.indexOf("?") != -1) {
+            var str = url.substr(1);
+            strs = str.split("&");
+            for(var i = 0; i < strs.length; i ++) {
+                theRequest[strs[i].split("=")[0]]=unescape(strs[i].split("=")[1]);
+            }
+        }
+        return theRequest;
     },
     addZero:function(msg){
         /*给时间加0，保证最少两位数*/
@@ -215,20 +95,6 @@ var util = {
             start_time : start_time,
             end_time : parseInt(end_time.getTime()/1000)
         }
-    },
-    getRequest:function() {
-        //获取url中所附带的参数
-        var url = location.search;
-        var theRequest = new Object();
-
-        if (url.indexOf("?") != -1) {
-            var str = url.substr(1);
-            strs = str.split("&");
-            for(var i = 0; i < strs.length; i ++) {
-                theRequest[strs[i].split("=")[0]]=unescape(strs[i].split("=")[1]);
-            }
-        }
-        return theRequest;
     },
     is:function(o, type) {
         var isnan = {"NaN": 1, "Infinity": 1, "-Infinity": 1}
@@ -348,6 +214,7 @@ var util = {
         }
     },
     extend:function(){
+        /*copy from jquery*/
         var options, name, src, copy, copyIsArray, clone,
     		target = arguments[ 0 ] || {},
     		i = 1,
@@ -390,79 +257,30 @@ var util = {
     	}
     	// Return the modified object
     	return target;
-    }
-};
-var cache = {
-    /**
-     对本地数据进行操作的相关方法，如localStorage,sessionStorage的封装
-    */
-    setStorage: function(key, value, duration) {
-        var data = {
-            value: value,
-            expiryTime: !duration || isNaN(duration) ? 0 : this.getCurrentTimeStamp() + parseInt(duration)
-        };
-        localStorage[key] = JSON.stringify(data);
     },
-    getStorage: function(key) {
-        var data = localStorage[key];
-        if (!data || data === "null") {
-            return null;
-        }
-        var now = this.getCurrentTimeStamp();
-        var obj;
-        try {
-            obj = JSON.parse(data);
-        } catch (e) {
-            return null;
-        }
-        if (obj.expiryTime === 0 || obj.expiryTime > now) {
-            return obj.value;
-        }
-        return null;
+    stringReplaceAll(string,exp, newStr){
+        return string.replace(new RegExp(exp, "gm"), newStr);
     },
-    removeStorage: function(key){
-        localStorage.removeItem(key);
-    },
-    getSession: function(key) {
-        var data = sessionStorage[key];
-        if (!data || data === "null") {
-            return null;
+    stringFormat(string,args){
+        var result = string;
+        if (arguments.length < 1) {
+            return result;
         }
-        return JSON.parse(data).value;
 
-    },
-    setSession: function(key, value) {
-        var data = {
-            value: value
+        var data = arguments; // 如果模板参数是数组
+        if (arguments.length == 1 && typeof (args) == "object") {
+            // 如果模板参数是对象
+            data = args;
         }
-        sessionStorage[key] = JSON.stringify(data);
-    },
-    getCurrentTimeStamp: function() {
-        return Date.parse(new Date()) / 1000;
-    }
-};
-String.prototype.replaceAll = function (exp, newStr) {
-    return this.replace(new RegExp(exp, "gm"), newStr);
-};
-String.prototype.format = function(args) {
-    var result = this;
-    if (arguments.length < 1) {
+        for ( var key in data) {
+            if(!data.hasOwnProperty(key))break;
+            var value = data[key];
+            if (undefined != value) {
+                result = result.replaceAll("\\{" + key + "\\}", value);
+            }
+        }
         return result;
     }
-
-    var data = arguments; // 如果模板参数是数组
-    if (arguments.length == 1 && typeof (args) == "object") {
-        // 如果模板参数是对象
-        data = args;
-    }
-    for ( var key in data) {
-        if(!data.hasOwnProperty(key))break;
-        var value = data[key];
-        if (undefined != value) {
-            result = result.replaceAll("\\{" + key + "\\}", value);
-        }
-    }
-    return result;
-}
+};
 /*ES6 导出*/
-export {util,cache}
+export default util;

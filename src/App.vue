@@ -5,8 +5,19 @@
 </template>
 
 <script>
+import Api from './services/api.js'
 export default {
-  name: 'app'
+    name: 'app',
+    data(){
+        return {
+
+        }
+    },
+    mounted(){
+        Api.getUserInfo().then(function(res){
+            console.log(res);
+        });
+    }
 }
 </script>
 

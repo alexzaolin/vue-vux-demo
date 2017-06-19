@@ -1,25 +1,24 @@
 /*axios*/
 import axios from 'axios'
 import api from './api.js'
-import {util,cache} from '../utils/util.js'
+import util from '../utils/util.js'
+import storage from '../utils/storage.js'
 
 var axiosFun = function(opt){
 	/*
 		opt:{
-			method:"getUserInfo",
-			data:data
+			method:"GET",
+			url:"r=get-userinfo"
 		}
 	*/
-	var param = {
-
-	}
-	param = that.extend(true,param,opt);
+	var param = {}
+	param = util.extend(true,param,opt);
 
 	/*params 拼接在url后面的参数*/
 	var third_session_obj = {
-		"third_session": cache.getStorage("third_session")
+		"third_session": storage.getStorage("third_session")
 	}
-	var params = param.method.toLowerCase()==='get'?that.extend({},third_session_obj,param.data):third_session_obj;
+	var params = param.method.toLowerCase()==='get'?util.extend({},third_session_obj,param.data):third_session_obj;
 	/*data是body里面的内容*/
 	var data = param.method.toLowerCase()==='post'?JSON.stringify(param.data):null;
 	var ajaxConfig = {
@@ -27,7 +26,7 @@ var axiosFun = function(opt){
 		url:"index.php?"+param.url,
 		data:data,
 		params: params,
-		baseURL: that.apiPreUrl,
+		baseURL: util.apiPreUrl,
 		withCredentials:true,
 		headers:{
 			"Content-type":"application/json;charset=utf-8"
@@ -49,6 +48,27 @@ var axiosFun = function(opt){
 			// `onDownloadProgress` 允许为下载处理进度事件
 		}
 	}
+	return new Promise(function(resolve,reject){
+		axios(ajaxConfig).then(function(res){
+			var data = typeof res == 'string'?JSON.parse(res.data):res.data;
+
+			if(data.code==0){
+				resolve(res)
+			}else if(data.code==20007){
+				util.login(self);
+			}else if(data.code==20102){
+				util.login(self);
+
+			}else{
+				util.alert(data.msg,false);
+			}
+
+		}).catch(function(err){
+			reject(err)
+		});
+	});
+
+	return false;
 
 	axios(ajaxConfig).then(function(res){
 		var data = typeof res == 'string'?JSON.parse(res.data):res.data;
@@ -61,12 +81,12 @@ var axiosFun = function(opt){
 				typeof data.data=='undefined'?param.success():param.success(data.data)
 			}
 		}else if(data.code==20007){
-			that.login(self);
+			util.login(self);
 		}else if(data.code==20102){
-			that.login(self);
+			util.login(self);
 
 		}else{
-			that.alert(data.msg,false,self);
+			util.alert(data.msg,false,self);
 		}
 
 	}).catch(function(err){
@@ -74,4 +94,4 @@ var axiosFun = function(opt){
 	});
 }
 
-export default = axios;
+export default axiosFun;
