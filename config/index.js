@@ -1,6 +1,6 @@
 // see http://vuejs-templates.github.io/webpack for documentation.
 var path = require('path')
-
+process.noDeprecation = true;//去除hint的提示
 module.exports = {
   build: {
     env: require('./prod.env'),
